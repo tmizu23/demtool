@@ -1,7 +1,7 @@
 *********************************
 基盤地図情報標高DEM変換ツール Ver1.6.8
 
-作成：2017/12/26
+作成：2017/12/27
 Copyright：株式会社エコリス
 *********************************
 
@@ -16,14 +16,13 @@ Copyright：株式会社エコリス
 ※非日本語環境では、変換結合.vbsの代わりに、convert_and_merge.vbsをご利用ください。（今木様ご提供）
 
 ### コンパイル方法(開発者のみ) ###
-1.proj4のソースをコンパイル
+1.proj4のソースをコンパイル。(nmake /f makefile.vc; nmake /f makefile.vc install-all)
 2.nmake.optのSETARGVを変更。SETARGV = "C:\PROGRA~2\MICROS~1.0\VC\lib\setargv.obj"
-3.nmake.optのPROJ4をコメントアウト。proj4のパスを設定
-4.nmake.opt.inのPROJ_STATICのifdefをコメントアウト
-5.gdalのソースをコンパイル(nmake -f makefile.vc)
-6.インストール(nmake -f makefile.vc install)
-7.インストール(nmake -f makefile.vc devinstall)
-8.dem.cppをコンパイル(cl -Ic:\warmerda\bld\include c:\warmerda\bld\lib\gdal_i.lib dem.cpp)
+3.nmake.optのPROJ4をコメントアウト。proj4のパスを設定。proj.libにする。(proj_i.libではない)
+4.gdalのソースをコンパイル(nmake -f makefile.vc)
+5.インストール(nmake -f makefile.vc install)
+6.インストール(nmake -f makefile.vc devinstall)
+7.dem.cppをコンパイル(cl -Ic:\warmerda\bld\include c:\warmerda\bld\lib\gdal_i.lib dem.cpp)
 
 ### 注意事項 ###
 
@@ -37,7 +36,8 @@ Copyright：株式会社エコリス
 　以上を守って頂ければ、商用、改造、再配布等に関して制限は特にありません。
 
 ### 更新情報 ###
-# v1.6.8 2017/12/26
+# v1.6.8 2017/12/27
+・JGD2011に対応
 ・gdal2.2.3にして、proj4をスタティックリンクに変更
 
 # v1.6.7 2016/12/22

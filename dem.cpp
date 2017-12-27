@@ -4,12 +4,14 @@
 #include "cpl_vsi.h"
 #include "cpl_conv.h"
 #include "cpl_string.h"
+#include "ogr_core.h"
 
 struct deminfo {
   char mesh[10];
   double W, E, S, N;
   int lowx, lowy, highx, highy, startx, starty;
   float *alti;
+  int jgd;
 };
 
 char *cut(const char *str, const char *ss, const char *es, char *buff)
@@ -67,8 +69,22 @@ makeGeotiff(struct deminfo *d0, char *outpath, int nodata)
 	dsnGeoTransform[5] = -1.0 * (d0->N - d0->S) / dsn_ysize;
 	GDALSetGeoTransform(hDsnDS, dsnGeoTransform);
 
-	char pszSRS_WKT[1024] = "GEOGCS\[\"JGD2000\", DATUM\[\"Japanese Geodetic Datum 2000\", SPHEROID\[\"GRS 1980\", 6378137.0, 298.257222101, AUTHORITY\[\"EPSG\",\"7019\"\]\], TOWGS84\[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0\],AUTHORITY\[\"EPSG\",\"6612\"\]\], PRIMEM\[\"Greenwich\", 0.0, AUTHORITY\[\"EPSG\",\"8901\"\]\], UNIT\[\"degree\", 0.017453292519943295\], AXIS\[\"Geodetic longitude\", EAST\], AXIS\[\"Geodetic latitude\", NORTH\], AUTHORITY\[\"EPSG\",\"4612\"\]\]";
-	GDALSetProjection(hDsnDS, pszSRS_WKT);
+
+    int nCode;
+	if(d0->jgd==2000){
+       nCode=4612;
+    }else{
+       nCode=6668;
+    }
+	OGRSpatialReferenceH hSRS;
+	char *pszSRS_WKT = NULL;
+	hSRS = OSRNewSpatialReference( NULL );
+	OSRImportFromEPSG( hSRS, nCode );
+	OSRExportToWkt( hSRS, &pszSRS_WKT );
+	OSRDestroySpatialReference( hSRS );
+	GDALSetProjection( hDsnDS, pszSRS_WKT );
+	CPLFree( pszSRS_WKT );
+
 	GDALRasterBandH t_band = GDALGetRasterBand(hDsnDS, 1);
 	if (nodata == 1){
 		GDALSetRasterNoDataValue(t_band, -9999);
@@ -100,6 +116,9 @@ main(int argc, char *argv[])
 		if (strstr(buf, "<mesh>") != NULL) {
 			strcpy(d0.mesh, cut(buf, "<mesh>", "</mesh>", cbuf));
 		}
+		else if (strstr(buf, "<gml:Envelope srsName=") != NULL) {
+			sscanf(cut(buf, "<gml:Envelope srsName=\"fguuid:jgd", ".bl\">", cbuf), "%d", &d0.jgd);
+		}
 		else if (strstr(buf, "<gml:lowerCorner>") != NULL) {
 			sscanf(cut(buf, "<gml:lowerCorner>", "</gml:lowerCorner>", cbuf), "%lf %lf", &d0.S, &d0.W);
 		}
@@ -119,6 +138,7 @@ main(int argc, char *argv[])
 			printf("mesh:%s\n", d0.mesh);
 			printf("N:%lf,S:%lf,W:%lf,E:%lf\n", d0.N, d0.S, d0.W, d0.E);
 			printf("col row: %d %d\n", d0.highx - d0.lowx + 1, d0.highy - d0.lowy + 1);
+			printf("proj:JGD%d\n", d0.jgd);
 			printf("Reading data ...\n");
 		}
 		else if (strstr(buf, "<gml:startPoint>") != NULL) {
@@ -176,5 +196,5 @@ main(int argc, char *argv[])
 	strcat(outpath, ".tif");
 	makeGeotiff(&d0, outpath, nodata);
 	free(d0.alti);
-	return 0;
+	return d0.jgd;
 }
