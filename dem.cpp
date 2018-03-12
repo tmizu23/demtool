@@ -116,8 +116,8 @@ main(int argc, char *argv[])
 		if (strstr(buf, "<mesh>") != NULL) {
 			strcpy(d0.mesh, cut(buf, "<mesh>", "</mesh>", cbuf));
 		}
-		else if (strstr(buf, "<gml:Envelope srsName=") != NULL) {
-			sscanf(cut(buf, "<gml:Envelope srsName=\"fguuid:jgd", ".bl\">", cbuf), "%d", &d0.jgd);
+		else if (strstr(buf, "fguuid:jgd") != NULL) {
+			sscanf(cut(buf, "fguuid:jgd", ".bl\">", cbuf), "%d", &d0.jgd);
 		}
 		else if (strstr(buf, "<gml:lowerCorner>") != NULL) {
 			sscanf(cut(buf, "<gml:lowerCorner>", "</gml:lowerCorner>", cbuf), "%lf %lf", &d0.S, &d0.W);
