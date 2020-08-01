@@ -1,7 +1,7 @@
 *********************************
-基盤地図情報標高DEM変換ツール Ver1.6.9
+基盤地図情報標高DEM変換ツール Ver1.7.0
 
-作成：2018/3/12
+作成：2020/8/1
 Copyright：株式会社エコリス
 *********************************
 
@@ -16,13 +16,45 @@ Copyright：株式会社エコリス
 ※非日本語環境では、変換結合.vbsの代わりに、convert_and_merge.vbsをご利用ください。（今木様ご提供）
 
 ### コンパイル方法(開発者のみ) ###
-1.proj4のソースをコンパイル。(nmake /f makefile.vc; nmake /f makefile.vc install-all)
-2.nmake.optのSETARGVを変更。SETARGV = "C:\PROGRA~2\MICROS~1.0\VC\lib\setargv.obj"
-3.nmake.optのPROJ4をコメントアウト。proj4のパスを設定。proj.libにする。(proj_i.libではない)
-4.gdalのソースをコンパイル(nmake -f makefile.vc)
-5.インストール(nmake -f makefile.vc install)
-6.インストール(nmake -f makefile.vc devinstall)
-7.dem.cppをコンパイル(cl -Ic:\warmerda\bld\include c:\warmerda\bld\lib\gdal_i.lib dem.cpp)
+0.Visual Studio Community 2017をインストールして、x64 Native Tools コマンドプロンプトを起動
+1.projのソースをコンパイル
+ver6.3.2をダウンロード
+https://proj.org/download.html
+sqlite3をダウンロード
+https://www.sqlite.org/2020/sqlite-amalgamation-3320300.zip
+
+以下を参考にビルド
+https://gist.github.com/pebbie/f5f0b1db7fc4039af89054c1b3fb532f
+
+2.gdalのソースをコンパイル
+https://github.com/OSGeo/gdal/releases/download/v3.0.4/gdal-3.0.4.tar.gz
+
+・nmake.optのSETARGVを変更。SETARGV = "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.16.27023\lib\x64\setargv.obj"
+・nmake.optのPROJを変更
+PROJ_INCLUDE = -IC:\Users\mizutani\Desktop\proj-6.3.2\build\distro\include
+PROJ_LIBRARY = "C:\Users\mizutani\Desktop\proj-6.3.2\build\distro\lib\proj.lib"
+
+・nmake.optのssqlite3を変更
+SQLITE_INC=-IC:\Users\mizutani\Desktop\proj-6.3.2\build\sqlite3
+SQLITE_LIB=C:\Users\mizutani\Desktop\proj-6.3.2\build\sqlite3\sqlite3.lib
+
+・ビルド
+nmake -f makefile.vc MSVC_VER=1910 WIN64=yes
+nmake -f makefile.vc devinstall MSVC_VER=1910 WIN64=yes
+
+3.dem.cppをコンパイル
+cl -Ic:\warmerda\bld\include c:\warmerda\bld\lib\gdal_i.lib dem.cpp
+
+4.gdalのexe、dll、dataをコピー
+C:\warmerda\bld\binからコピー
+・gdal300.dll
+・gdalbuildvrt.exe
+・gdalwarp.exe
+・gdaldem.exe
+C:\warmerda\bld\dataフォルダをコピー
+
+5.projをコピー
+C:\Users\mizutani\Desktop\proj-6.3.2\build\distro\share\projフォルダをコピー
 
 ### 注意事項 ###
 
@@ -36,6 +68,11 @@ Copyright：株式会社エコリス
 　以上を守って頂ければ、商用、改造、再配布等に関して制限は特にありません。
 
 ### 更新情報 ###
+# v1.7.0 2020/8/1
+・QGIS3.10以降でCRSが不明となる不具合を修正しました。
+・gdalを3.0.4、projを6.3.2に変更しました。
+・32bitOSを非対応にしました。動作未確認です。
+
 # v1.6.9 2018/3/12
 ・一部ファイルで測地系が異なる旨のメッセージが出るバグを修正しました。
 

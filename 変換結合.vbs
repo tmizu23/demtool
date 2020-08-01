@@ -70,7 +70,8 @@ Set objWshShell = WScript.CreateObject("WScript.Shell")
 '環境変数設定
 Set tempEnv = objWshShell.Environment("Process")
 tempEnv.Item("GDAL_DATA") = "data"
-tempEnv.Item("GDAL_FILENAME_IS_UTF8") = "NO"
+tempEnv.Item("GDAL_FILENAME_IS_UTF8") = "YES"
+tempEnv.Item("PROJ_LIB") = "proj"
 
 
 Set objFolder = objShell.BrowseForFolder(0, "JPGIS(GML形式)の入っているフォルダを選択してください", 0)
@@ -214,15 +215,16 @@ prj = """" & "epsg:" & prj & """"
 
 
 '結合 緯度経度
-strCmdLine = "gdalbuildvrt.exe -overwrite "  & """" & objFolder.Items.Item.Path & "\mergeLL.vrt" & """" & " " & """" & objFolder.Items.Item.Path & "\*.tif" & """" 
+strCmdLine = "gdalbuildvrt.exe -overwrite "  & """" & objFolder.Items.Item.Path & "\mergeLL.vrt" & """" & " " & """" & objFolder.Items.Item.Path & "\*.tif" & """"
 flag = objWshShell.Run(strCmdLine,,True)
 
 '変換 prj
 If nodata = 0 Then
-   strCmdLine = "gdalwarp.exe -r bilinear -srcnodata None -t_srs " & prj & " """ & objFolder.Items.Item.Path & "\mergeLL.vrt" & """" & " " & """" & objFolder.Items.Item.Path & "\merge.tif" & """" 
+   strCmdLine = "gdalwarp.exe -r bilinear -srcnodata None -t_srs " & prj & " """ & objFolder.Items.Item.Path & "\mergeLL.vrt" & """" & " " & """" & objFolder.Items.Item.Path & "\merge.tif" & """"
 Else
-   strCmdLine = "gdalwarp.exe -r bilinear -srcnodata -9999 -dstnodata -9999 -t_srs " & prj & " """ & objFolder.Items.Item.Path & "\mergeLL.vrt" & """" & " " & """" & objFolder.Items.Item.Path & "\merge.tif" & """" 
+   strCmdLine = "gdalwarp.exe -r bilinear -srcnodata -9999 -dstnodata -9999 -t_srs " & prj & " """ & objFolder.Items.Item.Path & "\mergeLL.vrt" & """" & " " & """" & objFolder.Items.Item.Path & "\merge.tif" & """"
 End If
+
 flag = objWshShell.Run(strCmdLine,,True)
 
 '陰影

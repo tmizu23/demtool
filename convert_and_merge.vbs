@@ -70,7 +70,8 @@ Set objWshShell = WScript.CreateObject("WScript.Shell")
 'set environment variable
 Set tempEnv = objWshShell.Environment("Process")
 tempEnv.Item("GDAL_DATA") = "data"
-tempEnv.Item("GDAL_FILENAME_IS_UTF8") = "NO"
+tempEnv.Item("GDAL_FILENAME_IS_UTF8") = "YES"
+tempEnv.Item("PROJ_LIB") = "proj"
 
 
 Set objFolder = objShell.BrowseForFolder(0, "Please select a folder that contains JPGIS (GML format) files.", 0)
