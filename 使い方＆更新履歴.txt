@@ -1,7 +1,7 @@
 *********************************
-基盤地図情報標高DEM変換ツール Ver1.7.0
+基盤地図情報標高DEM変換ツール Ver1.7.1
 
-作成：2020/8/1
+作成：2021/7/2
 Copyright：株式会社エコリス
 *********************************
 
@@ -27,7 +27,7 @@ https://www.sqlite.org/2020/sqlite-amalgamation-3320300.zip
 https://gist.github.com/pebbie/f5f0b1db7fc4039af89054c1b3fb532f
 
 2.gdalのソースをコンパイル
-https://github.com/OSGeo/gdal/releases/download/v3.0.4/gdal-3.0.4.tar.gz
+https://github.com/OSGeo/gdal/releases/download/v3.1.4/gdal-3.1.4.tar.gz
 
 ・nmake.optのSETARGVを変更。SETARGV = "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.16.27023\lib\x64\setargv.obj"
 ・nmake.optのPROJを変更
@@ -47,7 +47,7 @@ cl -Ic:\warmerda\bld\include c:\warmerda\bld\lib\gdal_i.lib dem.cpp
 
 4.gdalのexe、dll、dataをコピー
 C:\warmerda\bld\binからコピー
-・gdal300.dll
+・gdal301.dll
 ・gdalbuildvrt.exe
 ・gdalwarp.exe
 ・gdaldem.exe
@@ -68,6 +68,11 @@ C:\Users\mizutani\Desktop\proj-6.3.2\build\distro\share\projフォルダをコピー
 　以上を守って頂ければ、商用、改造、再配布等に関して制限は特にありません。
 
 ### 更新情報 ###
+
+# v1.7.1 2021/7/2
+・nodataを含むデータでmerge.tifの値が元の値と異なって出力される不具合を修正しました。
+（gdal3.0.4のgdalwarpのバグに起因する不具合でした。）
+
 # v1.7.0 2020/8/1
 ・QGIS3.10以降でCRSが不明となる不具合を修正しました。
 ・gdalを3.0.4、projを6.3.2に変更しました。

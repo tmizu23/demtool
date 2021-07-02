@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 /******************************************************************************
- * $Id$
+ * $Id: pdfcomposition.xsd 5a04126b888092d810db40222dce30479b5ff901 2019-04-09 18:05:52 +0200 Even Rouault $
  *
  * Project:  GDAL/OGR
  * Purpose:  XML Schema for GDAL PDF driver composition files.
