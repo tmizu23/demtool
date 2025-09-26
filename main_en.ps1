@@ -35,7 +35,7 @@ $ascii=Use-AsciiFallback $scriptDir
 if($ascii){ $env:GDAL_DATA=$ascii.Data; $env:PROJ_LIB=$ascii.Proj } else { $env:GDAL_DATA=Join-Path $scriptDir 'data'; $env:PROJ_LIB=Join-Path $scriptDir 'proj' }
 $env:GDAL_FILENAME_IS_UTF8='YES'
 
-Info '2017/12/27 update: Support for JGD2011. Do NOT mix JGD2011 and JGD2000.'
+Info '2025/09/26 update: JGD2000(EPSG codes), JGD2011(EPSG codes), JGD2024(WKT definitions). Do NOT mix data from different geodetic systems.'
 $inProj = AskIn "Select projection:`r`nLat/Long:0  UTM:1  Plane Rectangular:2" '0'
 switch($inProj){
   '0' {$prjType='idokeido';$shadeScale=111120}
@@ -65,7 +65,50 @@ $prj=$null
 if($prjType -eq 'idokeido'){ $prj=4612 } elseif($prjType -eq 'UTM'){ $utm=@{'51'=3097;'52'=3098;'53'=3099;'54'=3100;'55'=3101;'56'=3102}; if($utm.ContainsKey($zone)){ $prj=$utm[$zone] } } elseif($prjType -eq 'heimen'){ $hm=@{'1'=2443;'2'=2444;'3'=2445;'4'=2446;'5'=2447;'6'=2448;'7'=2449;'8'=2450;'9'=2451;'10'=2452;'11'=2453;'12'=2454;'13'=2455;'14'=2456;'15'=2457;'16'=2458;'17'=2459;'18'=2460;'19'=2461}; if($hm.ContainsKey($zone)){ $prj=$hm[$zone] } }
 if(-not $prj){ ErrMsg 'Invalid zone / system number.'; return }
 if($jgd -eq 2011){ switch($prjType){ 'idokeido'{$prj=6668}; 'UTM'{$prj+=3591}; 'heimen'{$prj+=4226} } }
-$prjArg = "epsg:$prj"
+elseif($jgd -eq 2024){
+	# JGD2024 support (using WKT definitions)
+	switch($prjType){
+		'idokeido' { $prj = 'JGD2024_GEOG' }
+		'UTM' { $prj = "JGD2024_UTM_$zone" }
+		'heimen' { $prj = "JGD2024_PLANE_$zone" }
+	}
+}
+# Set JGD2024 coordinate system WKT definitions
+if($prj -eq 'JGD2024_GEOG'){
+	# JGD2024 geographic coordinate system
+	$prjArg = 'GEOGCS["JGD2024",DATUM["Japanese_Geodetic_Datum_2024",SPHEROID["GRS_1980",6378137.0,298.257222101],AUTHORITY["EPSG","7019"]],PRIMEM["Greenwich",0.0,AUTHORITY["EPSG","8901"]],UNIT["Degree",0.0174532925199433,AUTHORITY["EPSG","9122"]]]'
+}elseif($prj -match '^JGD2024_UTM_(\d+)$'){
+	# JGD2024 UTM coordinate system
+	$utmZone = [int]$Matches[1]
+	if($utmZone -ge 51 -and $utmZone -le 56){
+		$centralMeridian = ($utmZone * 6) - 183
+		$prjArg = "PROJCS[`"JGD_2024_UTM_Zone_${utmZone}N`",GEOGCS[`"GCS_JGD_2024`",DATUM[`"D_JGD_2024`",SPHEROID[`"GRS_1980`",6378137.0,298.257222101]],PRIMEM[`"Greenwich`",0.0],UNIT[`"Degree`",0.0174532925199433]],PROJECTION[`"Transverse_Mercator`"],PARAMETER[`"False_Easting`",500000.0],PARAMETER[`"False_Northing`",0.0],PARAMETER[`"Central_Meridian`",$centralMeridian.0],PARAMETER[`"Scale_Factor`",0.9996],PARAMETER[`"Latitude_Of_Origin`",0.0],UNIT[`"Meter`",1.0]]"
+	}else{
+		ErrMsg "Invalid UTM zone: $utmZone (only 51-56 supported)"; return
+	}
+}elseif($prj -match '^JGD2024_PLANE_(\d+)$'){
+	# JGD2024 plane rectangular coordinate system
+	$planeZone = [int]$Matches[1]
+
+	# Central meridian and origin latitude for each zone
+	$planeParams = @{
+		1=@{lat=33.0; lon=129.5}; 2=@{lat=33.0; lon=131.0}; 3=@{lat=36.0; lon=132.166666666667}
+		4=@{lat=33.0; lon=133.5}; 5=@{lat=36.0; lon=134.333333333333}; 6=@{lat=36.0; lon=136.0}
+		7=@{lat=36.0; lon=137.166666666667}; 8=@{lat=36.0; lon=138.5}; 9=@{lat=36.0; lon=139.833333333333}
+		10=@{lat=40.0; lon=140.833333333333}; 11=@{lat=44.0; lon=140.25}; 12=@{lat=44.0; lon=142.25}
+		13=@{lat=44.0; lon=144.25}; 14=@{lat=26.0; lon=142.0}; 15=@{lat=26.0; lon=127.5}
+		16=@{lat=26.0; lon=124.0}; 17=@{lat=26.0; lon=131.0}; 18=@{lat=20.0; lon=136.0}; 19=@{lat=26.0; lon=154.0}
+	}
+
+	if($planeParams.ContainsKey($planeZone)){
+		$p = $planeParams[$planeZone]
+		$prjArg = "PROJCS[`"JGD2024_Japan_Zone_$planeZone`",GEOGCS[`"JGD2024`",DATUM[`"Japanese_Geodetic_Datum_2024`",SPHEROID[`"GRS_1980`",6378137.0,298.257222101]],PRIMEM[`"Greenwich`",0.0],UNIT[`"Degree`",0.0174532925199433]],PROJECTION[`"Transverse_Mercator`"],PARAMETER[`"False_Easting`",0.0],PARAMETER[`"False_Northing`",0.0],PARAMETER[`"Central_Meridian`",$($p.lon)],PARAMETER[`"Scale_Factor`",0.9999],PARAMETER[`"Latitude_Of_Origin`",$($p.lat)],UNIT[`"Meter`",1.0]]"
+	}else{
+		ErrMsg "Invalid plane rectangular coordinate zone: $planeZone"; return
+	}
+}else{
+	$prjArg = "epsg:$prj"
+}
 $gdalbuildvrt = Join-Path $scriptDir 'gdalbuildvrt.exe'
 $gdalwarp = Join-Path $scriptDir 'gdalwarp.exe'
 $gdaldem = Join-Path $scriptDir 'gdaldem.exe'

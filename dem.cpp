@@ -71,15 +71,20 @@ makeGeotiff(struct deminfo *d0, char *outpath, int nodata)
 
 
     int nCode;
-	if(d0->jgd==2000){
-       nCode=4612;
-    }else{
-       nCode=6668;
-    }
 	OGRSpatialReferenceH hSRS;
 	char *pszSRS_WKT = NULL;
 	hSRS = OSRNewSpatialReference( NULL );
-	OSRImportFromEPSG( hSRS, nCode );
+
+	if(d0->jgd==2000){
+       nCode=4612;
+       OSRImportFromEPSG( hSRS, nCode );
+    }else if(d0->jgd==2024){
+       char* jgd2024_wkt = (char*)"GEOGCS[\"JGD2024\",DATUM[\"Japanese_Geodetic_Datum_2024\",SPHEROID[\"GRS_1980\",6378137.0,298.257222101],AUTHORITY[\"EPSG\",\"7019\"]],PRIMEM[\"Greenwich\",0.0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"Degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]]";
+       OSRImportFromWkt( hSRS, &jgd2024_wkt );
+    }else{
+       nCode=6668;
+       OSRImportFromEPSG( hSRS, nCode );
+    }
 	OSRExportToWkt( hSRS, &pszSRS_WKT );
 	OSRDestroySpatialReference( hSRS );
 	GDALSetProjection( hDsnDS, pszSRS_WKT );
@@ -177,7 +182,7 @@ main(int argc, char *argv[])
 		d0.alti[k++] = -9999;
 	}
 
-	//ÉfÅ[É^Ç»ÇµÇ0Ç…Ç∑ÇÈÅB
+	//ÔøΩfÔøΩ[ÔøΩ^ÔøΩ»ÇÔøΩÔøΩÔøΩ0ÔøΩ…ÇÔøΩÔøΩÔøΩB
 	if (nodata == 0){
 		for (k = 0; k < dnum; k++){
 			if (d0.alti[k] == -9999) d0.alti[k] = 0;

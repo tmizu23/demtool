@@ -1,142 +1,145 @@
 *********************************
-��Ւn�}���W��DEM�ϊ��c�[�� Ver1.8.0 (PowerShell �ڐA��)
+基盤地図情報標高DEM変換ツール Ver1.8.1 (PowerShell 移植版)
 
-�쐬�F2025/8/19
-Copyright�F������ЃG�R���X
+作成：2025/9/26
+Copyright：株式会社エコリス
 *********************************
 
-### �ϊ����@ (PowerShell ��) ###
-�@ https://service.gsi.go.jp/kiban/app/ ���� JPGIS(GML�`��) �̕W���f�[�^���_�E�����[�h���𓀂���B
-�A ���{��: `�ϊ�����.cmd` ���_�u���N���b�N�B�i�p��: `convert_and_merge.cmd`�j
-�B ��ʂ̎w���ɏ]�� ���e�@ / �]�[�� / �A�e�N���}�쐬 / ���̓t�H���_ / �C��W���l ����́E�I������B
-�C �I���t�H���_���� *FG-GML*.xml �� GeoTIFF (*.tif) �ɕϊ������B(���Ԃ͈ܓx�o�x)
-�D ���ׂĂ��������� `merge.tif` ���o�͓��e�Ő��������B
-�E �A�e�N���}��I�������ꍇ�A`merge_shade.tif` �����������B
+### 変換方法 (PowerShell 版) ###
+① https://service.gsi.go.jp/kiban/app/ から JPGIS(GML形式) の標高データをダウンロードし解凍する。
+② 日本語: `変換結合.cmd` をダブルクリック。（英語: `convert_and_merge.cmd`）
+③ 画面の指示に従い 投影法 / ゾーン / 陰影起伏図作成 / 入力フォルダ / 海域標高値 を入力・選択する。
+④ 選択フォルダ内の *FG-GML*.xml が GeoTIFF (*.tif) に変換される。(中間は緯度経度)
+⑤ すべてを結合した `merge.tif` が出力投影で生成される。
+⑥ 陰影起伏図を選択した場合、`merge_shade.tif` が生成される。
 
-�� �S���܂Ƃ߂ď����������ꍇ�� XML ����̃t�H���_�ɏW�߂Ă��̃t�H���_��I�����Ă��������B
-�� �� VBScript (`�ϊ�����.vbs` / `convert_and_merge.vbs`) �͔p�~���APowerShell �֓������܂����B
+※ 全部まとめて処理したい場合は XML を一つのフォルダに集めてそのフォルダを選択してください。
+※ 旧 VBScript (`変換結合.vbs` / `convert_and_merge.vbs`) は廃止し、PowerShell へ統合しました。
 
-### �R���p�C�����@(�J���҂̂�) ###
-0.Visual Studio Community 2017���C���X�g�[�����āAx64 Native Tools �R�}���h�v�����v�g���N��
-1.proj�̃\�[�X���R���p�C��
-ver6.3.2���_�E�����[�h
+### コンパイル方法(開発者のみ) ###
+0.Visual Studio Community 2017をインストールして、x64 Native Tools コマンドプロンプトを起動
+1.projのソースをコンパイル
+ver6.3.2をダウンロード
 https://proj.org/download.html
-sqlite3���_�E�����[�h
+sqlite3をダウンロード
 https://www.sqlite.org/2020/sqlite-amalgamation-3320300.zip
 
-�ȉ����Q�l�Ƀr���h
+以下を参考にビルド
 https://gist.github.com/pebbie/f5f0b1db7fc4039af89054c1b3fb532f
 
-2.gdal�̃\�[�X���R���p�C��
+2.gdalのソースをコンパイル
 https://github.com/OSGeo/gdal/releases/download/v3.1.4/gdal-3.1.4.tar.gz
 
-�Enmake.opt��SETARGV��ύX�BSETARGV = "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.16.27023\lib\x64\setargv.obj"
-�Enmake.opt��PROJ��ύX
+・nmake.optのSETARGVを変更。SETARGV = "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Tools\MSVC\14.16.27023\lib\x64\setargv.obj"
+・nmake.optのPROJを変更
 PROJ_INCLUDE = -IC:\Users\mizutani\Desktop\proj-6.3.2\build\distro\include
 PROJ_LIBRARY = "C:\Users\mizutani\Desktop\proj-6.3.2\build\distro\lib\proj.lib"
 
-�Enmake.opt��ssqlite3��ύX
+・nmake.optのssqlite3を変更
 SQLITE_INC=-IC:\Users\mizutani\Desktop\proj-6.3.2\build\sqlite3
 SQLITE_LIB=C:\Users\mizutani\Desktop\proj-6.3.2\build\sqlite3\sqlite3.lib
 
-�E�r���h
+・ビルド
 nmake -f makefile.vc MSVC_VER=1910 WIN64=yes
 nmake -f makefile.vc devinstall MSVC_VER=1910 WIN64=yes
 
-3.dem.cpp���R���p�C��
+3.dem.cppをコンパイル
 cl -Ic:\warmerda\bld\include c:\warmerda\bld\lib\gdal_i.lib dem.cpp
 
-4.gdal��exe�Adll�Adata���R�s�[
-C:\warmerda\bld\bin����R�s�[
-�Egdal301.dll
-�Egdalbuildvrt.exe
-�Egdalwarp.exe
-�Egdaldem.exe
-C:\warmerda\bld\data�t�H���_���R�s�[
+4.gdalのexe、dll、dataをコピー
+C:\warmerda\bld\binからコピー
+・gdal301.dll
+・gdalbuildvrt.exe
+・gdalwarp.exe
+・gdaldem.exe
+C:\warmerda\bld\dataフォルダをコピー
 
-5.proj���R�s�[
-C:\Users\mizutani\Desktop\proj-6.3.2\build\distro\share\proj�t�H���_���R�s�[
+5.projをコピー
+C:\Users\mizutani\Desktop\proj-6.3.2\build\distro\share\projフォルダをコピー
 
-### ���ӎ��� ###
+### 注意事項 ###
 
-�E���\�t�g�ŕϊ����ꂽ�f�[�^�̐��x�Ɋւ��ẮA��ؕۏ؂������܂���B
-�E���\�t�g�E�F�A���g�p���邱�Ƃɂ�蔭���������ړI�A�ԐړI�ȑ��Q�ɑ΂��ē��Ђ͈�؂̐ӔC�𕉂��܂���B
-�E���\�t�g�E�F�A�́AGDAL(http://gdal.org)�APROJ.4(http://trac.osgeo.org/proj/)���C�u�����𗘗p���Ă��܂��B
-  ���C�Z���X�ɂ��Ă�LICENSE.TXT���������������B
-�E���\�t�g��MIT���C�Z���X�ł��B
-�@1.���̃��C�Z���X�\������ђ��쌠�\���̋L�ڂ����邱��
-�@2.��҂͎g�p�Ɋւ��ĐӔC�𕉂�Ȃ�����
-�@�ȏ������Ē�����΁A���p�A�����A�Ĕz�z���Ɋւ��Đ����͓��ɂ���܂���B
+・当ソフトで変換されたデータの精度に関しては、一切保証いたしません。
+・当ソフトウェアを使用することにより発生した直接的、間接的な損害に対して当社は一切の責任を負いません。
+・当ソフトウェアは、GDAL(http://gdal.org)、PROJ.4(http://trac.osgeo.org/proj/)ライブラリを利用しています。
+  ライセンスについてはLICENSE.TXTをご覧ください。
+・当ソフトはMITライセンスです。
+　1.このライセンス表示および著作権表示の記載をすること
+　2.作者は使用に関して責任を負わないこと
+　以上を守って頂ければ、商用、改造、再配布等に関して制限は特にありません。
 
-### �X�V��� ###
+### 更新情報 ###
+
+## v1.8.1 2025/9/26
+・日本測地系2024 (JGD2024) にWKT定義で対応（EPSGコードは未対応）。
 
 # v1.8.0 2025/8/19
-�EPowerShell �ł֑S�ʈڍs (�� VBScript �t�@�C�����폜)�B
+・PowerShell 版へ全面移行 (旧 VBScript ファイルを削除)。
 
 # v1.7.1 2021/7/2
-�Enodata���܂ރf�[�^��merge.tif�̒l�����̒l�ƈقȂ��ďo�͂����s����C�����܂����B
-�igdal3.0.4��gdalwarp�̃o�O�ɋN������s��ł����B�j
+・nodataを含むデータでmerge.tifの値が元の値と異なって出力される不具合を修正しました。
+（gdal3.0.4のgdalwarpのバグに起因する不具合でした。）
 
 # v1.7.0 2020/8/1
-�EQGIS3.10�ȍ~��CRS���s���ƂȂ�s����C�����܂����B
-�Egdal��3.0.4�Aproj��6.3.2�ɕύX���܂����B
-�E32bitOS���Ή��ɂ��܂����B���얢�m�F�ł��B
+・QGIS3.10以降でCRSが不明となる不具合を修正しました。
+・gdalを3.0.4、projを6.3.2に変更しました。
+・32bitOSを非対応にしました。動作未確認です。
 
 # v1.6.9 2018/3/12
-�E�ꕔ�t�@�C���ő��n�n���قȂ�|�̃��b�Z�[�W���o��o�O���C�����܂����B
+・一部ファイルで測地系が異なる旨のメッセージが出るバグを修正しました。
 
 # v1.6.8 2017/12/27
-�EJGD2011�ɑΉ�
-�Egdal2.2.3�ɂ��āAproj4���X�^�e�B�b�N�����N�ɕύX
+・JGD2011に対応
+・gdal2.2.3にして、proj4をスタティックリンクに変更
 
 # v1.6.7 2016/12/22
-�E�ꕔ�f�[�^�ŁA�C��̒l�̑I����-9999�Ƃ��Ă��A0�ɂȂ�o�O���C�����܂����B
-�i���W�l0,0����W����`���n�܂�r���Ńf�[�^���I������t�@�C���B�Ⴆ��FG-GML-6240-01-DEM5A�Ȃǁj
+・一部データで、海域の値の選択で-9999としても、0になるバグを修正しました。
+（座標値0,0から標高定義が始まり途中でデータが終了するファイル。例えばFG-GML-6240-01-DEM5Aなど）
 
 # v1.6.6 2016/4/28
-�E�C��̒l�̑I����-9999�Ƃ����ꍇ�Anodata��-9999�Ɛݒ肷��悤�ɕύX���܂����B
-�i�C��̒l��0�Ƃ����ꍇ�́A����܂Œʂ�nodata�͐ݒ肵�܂���B�j
+・海域の値の選択で-9999とした場合、nodataを-9999と設定するように変更しました。
+（海域の値を0とした場合は、これまで通りnodataは設定しません。）
 
 # v1.6.5 2016/4/22
-�E�C��̒l�̑I����-9999�Ƃ��Ă��Amerge.tif�̊C�敔����0�ɂȂ��Ă��܂��o�O���C�����܂����B
+・海域の値の選択で-9999としても、merge.tifの海域部分が0になってしまうバグを修正しました。
 
 # v1.6.4 2015/1/6
-�EJGD2011���Ή��̒��ӎ�����\������悤�ɕύX�i�Ή��͎��̃o�[�W�����Łj
+・JGD2011未対応の注意事項を表示するように変更（対応は次のバージョンで）
 
 # v1.6.3 2014/11/5
-�E5m���b�V���̌������ł��Ȃ��o�O���������̂ŏC�����܂����B
-�Emsvcp100.dll�Amsvcr100.dll���Ȃ��G���[���o��ꍇ���������̂ŏC�����܂����B
+・5mメッシュの結合ができないバグがあったので修正しました。
+・msvcp100.dll、msvcr100.dllがないエラーが出る場合があったので修正しました。
 
 # v1.6.2 2014/10/17
-�E�ϊ����G���[�ƂȂ�o�O���������̂ŏC�����܂����B
+・変換がエラーとなるバグがあったので修正しました。
 
 # v1.6.1 2014/10/7
-�E�t�H���_�̒���aux.xml������ƃn���O�A�b�v����o�O���C�����܂����B
+・フォルダの中にaux.xmlがあるとハングアップするバグを修正しました。
 
 # v1.6 2014/8/27
-�E�����̃t�@�C������������ۂɃG���[���o��o�O���C�����܂����B
-�E�ϊ����ɃR�}���h�v�����v�g�͍ŏ������č�Ƃ̎ז��ɂȂ�Ȃ��悤�ɕύX���܂����B
-�Emerge.tif�����łɂ���ꍇ�͕ϊ����Ȃ��悤�ɕύX���܂����B
-�E�ܓx�o�x�ł��A�e�N���}���쐬�ł���悤�ɕύX���܂����B
+・多数のファイルを結合する際にエラーが出るバグを修正しました。
+・変換時にコマンドプロンプトは最小化して作業の邪魔にならないように変更しました。
+・merge.tifがすでにある場合は変換しないように変更しました。
+・緯度経度でも陰影起伏図を作成できるように変更しました。
 
 # v1.5 2014/2/27
-�E�ꕔ�̃f�[�^�ŃG���[���o��o�O���C�����܂����B
-�Egdal�̃o�[�W������1.10�ɕύX���܂����B
-�E���e�@�̒�`��epsg�R�[�h�𗘗p����悤�ɕύX���܂����B
-�EmergeLL.tif���o�͂��Ȃ��悤�ɂ��܂����B
-�E�A�e�N���}�̍쐬��gdaldem�𗘗p����悤�ɕύX���܂����B
-�E�J���[�����[�t�̍쐬�͍s��Ȃ��悤�ɕύX���܂����B
+・一部のデータでエラーが出るバグを修正しました。
+・gdalのバージョンを1.10に変更しました。
+・投影法の定義はepsgコードを利用するように変更しました。
+・mergeLL.tifを出力しないようにしました。
+・陰影起伏図の作成はgdaldemを利用するように変更しました。
+・カラーレリーフの作成は行わないように変更しました。
 
 
 # v1.4 2012/9/21
-�E�ꕔ�̃f�[�^�ŃG���[���o��o�O���C�����܂����B
-�EUTM�ւ̕ϊ����Ɏg�p����ȉ~�̂�WGS84����GRS80�ɕύX���܂����B
+・一部のデータでエラーが出るバグを修正しました。
+・UTMへの変換時に使用する楕円体をWGS84からGRS80に変更しました。
 
 # v1.3 2011/2/14
-�E�ϊ�����.vbs�̉p���convert_and_merge.vbs��ǉ����܂����B
-�E���\�t�g�̃��C�Z���X�ɂ��ċL�ڂ��܂����B
+・変換結合.vbsの英語版convert_and_merge.vbsを追加しました。
+・当ソフトのライセンスについて記載しました。
 
 # v1.2 2009/10/22
-�E���������f�[�^�̋��E���Ƀ��C������������C��
-����U�Agdal_wildwarp�ŃT���v�����O�A���S���Y����near�ɂ��āA�ܓx�o�x�̂܂܌������āA
-���̌�Agdalwarp�ŃT���v�����O�A���S���Y����bilinear�ɂ��ē��e�ϊ��ŉ����B
+・結合したデータの境界線にラインが入る問題を修正
+※一旦、gdal_wildwarpでサンプリングアルゴリズムをnearにして、緯度経度のまま結合して、
+その後、gdalwarpでサンプリングアルゴリズムをbilinearにして投影変換で解決。
