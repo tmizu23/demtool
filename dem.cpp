@@ -78,10 +78,8 @@ makeGeotiff(struct deminfo *d0, char *outpath, int nodata)
 	if(d0->jgd==2000){
        nCode=4612;
        OSRImportFromEPSG( hSRS, nCode );
-    }else if(d0->jgd==2024){
-       char* jgd2024_wkt = (char*)"GEOGCS[\"JGD2024\",DATUM[\"Japanese_Geodetic_Datum_2024\",SPHEROID[\"GRS_1980\",6378137.0,298.257222101],AUTHORITY[\"EPSG\",\"7019\"]],PRIMEM[\"Greenwich\",0.0,AUTHORITY[\"EPSG\",\"8901\"]],UNIT[\"Degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]]";
-       OSRImportFromWkt( hSRS, &jgd2024_wkt );
     }else{
+       // JGD2011/JGD2024とも同一の水平CRS（EPSG v12.055でJGD2024名へ更新済み）
        nCode=6668;
        OSRImportFromEPSG( hSRS, nCode );
     }

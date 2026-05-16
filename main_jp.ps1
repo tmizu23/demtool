@@ -73,7 +73,7 @@ trap {
 if(${_asciiInfo}){ $env:GDAL_DATA = ${_asciiInfo}.Data; $env:PROJ_LIB  = ${_asciiInfo}.Proj } else { $env:GDAL_DATA = Join-Path $scriptDir 'data'; $env:PROJ_LIB  = Join-Path $scriptDir 'proj' }
 $env:GDAL_FILENAME_IS_UTF8 = 'YES'
 
-Show-Info "2025/09/26更新: JGD2000(EPSGコード)、JGD2011(EPSGコード)、JGD2024(WKT定義)に対応しています。異なる測地系のデータを混在させないでください。"
+Show-Info "JGD2000・JGD2011・JGD2024に対応しています。JGD2024の水平座標はJGD2011と同一のEPSGコードで処理します（EPSG Dataset v12.055基準）。異なる測地系のデータを混在させないでください。"
 
 $prjTypeInput = Ask-Input "投影法を選択してください。`r`n緯度経度:0  UTM:1  平面直角座標:2" '0'
 switch($prjTypeInput){
@@ -108,12 +108,29 @@ $xmlFiles = Get-ChildItem -Path $targetDir -Filter '*FG-GML*.xml' -File -ErrorAc
 if(-not $xmlFiles){ Show-Error '対象となる *FG-GML*.xml ファイルが見つかりません。'; return }
 
 $jgd = $null
+$jgdFirstFile = $null
 foreach($f in $xmlFiles){
 	$argLine = '"{0}" {1}' -f $f.FullName, $nodataFlag
 	$p = Start-Process -FilePath $demExe -ArgumentList $argLine -NoNewWindow -Wait -PassThru
 	$code = $p.ExitCode
-	if(-not $jgd){ $jgd = $code }
-	elseif($code -ne $jgd){ Show-Error "$($f.Name) の測地系が異なります (期待: $jgd, 実際: $code)。終了します。"; return }
+	if(-not $jgd){ $jgd = $code; $jgdFirstFile = $f.Name }
+	elseif($code -ne $jgd){
+		$msg = "対象フォルダ内のファイルで測地系が混在しています。`r`n`r`n"
+		$msg += "  $jgdFirstFile : JGD$jgd`r`n"
+		$msg += "  $($f.Name) : JGD$code`r`n`r`n"
+		if(($jgd -eq 2011 -and $code -eq 2024) -or ($jgd -eq 2024 -and $code -eq 2011)){
+			$msg += "JGD2011とJGD2024は地図上の位置（緯度経度・平面直角・UTM）は同じですが、`r`n"
+			$msg += "標高の基準が異なります（地点により数cm〜数十cmの差）。`r`n"
+			$msg += "混在処理すると、データのつなぎ目で標高がずれてしまいます。`r`n`r`n"
+		} else {
+			$msg += "異なる測地系のデータは水平座標自体が異なるため、`r`n"
+			$msg += "混在処理すると座標値の不整合が発生します。`r`n`r`n"
+		}
+		$msg += "データの整合性を保つため、処理を中断します。`r`n"
+		$msg += "同じ測地系のデータのみを対象フォルダにまとめてから再実行してください。"
+		Show-Error $msg
+		return
+	}
 }
 
 $prj = $null
@@ -128,51 +145,8 @@ elseif($prjType -eq 'heimen'){
 }
 if(-not $prj){ Show-Error '投影法のゾーン/系番号が不正です。終了します。'; return }
 
-if($jgd -eq 2011){ switch($prjType){ 'idokeido' { $prj = 6668 }; 'UTM' { $prj += 3591 }; 'heimen' { $prj += 4226 } } }
-elseif($jgd -eq 2024){
-	# JGD2024対応（WKT定義使用）
-	switch($prjType){
-		'idokeido' { $prj = 'JGD2024_GEOG' }
-		'UTM' { $prj = "JGD2024_UTM_$zone" }
-		'heimen' { $prj = "JGD2024_PLANE_$zone" }
-	}
-}
-# JGD2024座標系のWKT定義を設定
-if($prj -eq 'JGD2024_GEOG'){
-	# JGD2024地理座標系
-	$prjArg = 'GEOGCS["JGD2024",DATUM["Japanese_Geodetic_Datum_2024",SPHEROID["GRS_1980",6378137.0,298.257222101],AUTHORITY["EPSG","7019"]],PRIMEM["Greenwich",0.0,AUTHORITY["EPSG","8901"]],UNIT["Degree",0.0174532925199433,AUTHORITY["EPSG","9122"]]]'
-}elseif($prj -match '^JGD2024_UTM_(\d+)$'){
-	# JGD2024 UTM座標系
-	$utmZone = [int]$Matches[1]
-	if($utmZone -ge 51 -and $utmZone -le 56){
-		$centralMeridian = ($utmZone * 6) - 183
-		$prjArg = "PROJCS[`"JGD_2024_UTM_Zone_${utmZone}N`",GEOGCS[`"GCS_JGD_2024`",DATUM[`"D_JGD_2024`",SPHEROID[`"GRS_1980`",6378137.0,298.257222101]],PRIMEM[`"Greenwich`",0.0],UNIT[`"Degree`",0.0174532925199433]],PROJECTION[`"Transverse_Mercator`"],PARAMETER[`"False_Easting`",500000.0],PARAMETER[`"False_Northing`",0.0],PARAMETER[`"Central_Meridian`",$centralMeridian.0],PARAMETER[`"Scale_Factor`",0.9996],PARAMETER[`"Latitude_Of_Origin`",0.0],UNIT[`"Meter`",1.0]]"
-	}else{
-		Show-Error "不正なUTMゾーン番号: $utmZone （51-56のみ対応）"; return
-	}
-}elseif($prj -match '^JGD2024_PLANE_(\d+)$'){
-	# JGD2024平面直角座標系
-	$planeZone = [int]$Matches[1]
-
-	# 各系の中央経線と原点緯度
-	$planeParams = @{
-		1=@{lat=33.0; lon=129.5}; 2=@{lat=33.0; lon=131.0}; 3=@{lat=36.0; lon=132.166666666667}
-		4=@{lat=33.0; lon=133.5}; 5=@{lat=36.0; lon=134.333333333333}; 6=@{lat=36.0; lon=136.0}
-		7=@{lat=36.0; lon=137.166666666667}; 8=@{lat=36.0; lon=138.5}; 9=@{lat=36.0; lon=139.833333333333}
-		10=@{lat=40.0; lon=140.833333333333}; 11=@{lat=44.0; lon=140.25}; 12=@{lat=44.0; lon=142.25}
-		13=@{lat=44.0; lon=144.25}; 14=@{lat=26.0; lon=142.0}; 15=@{lat=26.0; lon=127.5}
-		16=@{lat=26.0; lon=124.0}; 17=@{lat=26.0; lon=131.0}; 18=@{lat=20.0; lon=136.0}; 19=@{lat=26.0; lon=154.0}
-	}
-
-	if($planeParams.ContainsKey($planeZone)){
-		$p = $planeParams[$planeZone]
-		$prjArg = "PROJCS[`"JGD2024_Japan_Zone_$planeZone`",GEOGCS[`"JGD2024`",DATUM[`"Japanese_Geodetic_Datum_2024`",SPHEROID[`"GRS_1980`",6378137.0,298.257222101]],PRIMEM[`"Greenwich`",0.0],UNIT[`"Degree`",0.0174532925199433]],PROJECTION[`"Transverse_Mercator`"],PARAMETER[`"False_Easting`",0.0],PARAMETER[`"False_Northing`",0.0],PARAMETER[`"Central_Meridian`",$($p.lon)],PARAMETER[`"Scale_Factor`",0.9999],PARAMETER[`"Latitude_Of_Origin`",$($p.lat)],UNIT[`"Meter`",1.0]]"
-	}else{
-		Show-Error "不正な平面直角座標系番号: $planeZone"; return
-	}
-}else{
-	$prjArg = "epsg:$prj"
-}
+if($jgd -eq 2011 -or $jgd -eq 2024){ switch($prjType){ 'idokeido' { $prj = 6668 }; 'UTM' { $prj += 3591 }; 'heimen' { $prj += 4226 } } }
+$prjArg = "epsg:$prj"
 
 $gdalbuildvrt = Join-Path $scriptDir 'gdalbuildvrt.exe'
 $gdalwarp     = Join-Path $scriptDir 'gdalwarp.exe'
