@@ -30,6 +30,11 @@ function AskIn($m,$d=''){ $TopOwner.Activate()|Out-Null; [Microsoft.VisualBasic.
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $scriptDir
 
+# Remove Windows "Zone.Identifier" (Mark-of-the-Web) from bundled binaries.
+# Without this, GDAL exe launches stall waiting for a hidden security prompt.
+Get-ChildItem -Path $scriptDir -Include *.exe,*.dll,*.ps1 -Recurse -File -ErrorAction SilentlyContinue |
+    Unblock-File -ErrorAction SilentlyContinue
+
 function Use-AsciiFallback([string]$root){ if($root -notmatch '[^\x00-\x7f]'){return $null}; $tmp=Join-Path $env:TEMP 'demtool_ascii_en'; if(Test-Path $tmp){Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue}; New-Item -ItemType Directory -Path $tmp|Out-Null; foreach($d in 'proj','data'){ if(Test-Path (Join-Path $root $d)){ Copy-Item (Join-Path $root $d) (Join-Path $tmp $d) -Recurse -Force } }; @{Root=$tmp;Proj=(Join-Path $tmp 'proj');Data=(Join-Path $tmp 'data')} }
 $ascii=Use-AsciiFallback $scriptDir
 if($ascii){ $env:GDAL_DATA=$ascii.Data; $env:PROJ_LIB=$ascii.Proj } else { $env:GDAL_DATA=Join-Path $scriptDir 'data'; $env:PROJ_LIB=Join-Path $scriptDir 'proj' }

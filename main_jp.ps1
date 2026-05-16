@@ -46,6 +46,11 @@ function Ask-Input($msg,$default=''){
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $scriptDir
 
+# 配布ZIP展開時にWindowsが付ける「Zone.Identifier」(Mark-of-the-Web)を除去。
+# 未除去だとgdal系exeの起動が裏で警告ダイアログ待ちになり処理がハングする。
+Get-ChildItem -Path $scriptDir -Include *.exe,*.dll,*.ps1 -Recurse -File -ErrorAction SilentlyContinue |
+    Unblock-File -ErrorAction SilentlyContinue
+
 function Use-AsciiPathFallback {
 	param([string]$ScriptDir)
 	if($ScriptDir -notmatch '[^\x00-\x7f]') { return $null }
